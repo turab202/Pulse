@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import { User } from "../models/User.js";
 
 const SEED_USERS = [
-  // ===== FEMALES (NIQAB AVATARS) =====
+  
   {
     clerkId: "seed_user_1",
     name: "Meysun Mohammed",
@@ -28,7 +28,7 @@ const SEED_USERS = [
     avatar: "https://i.imgur.com/0FJ7G6L.png",
   },
 
-  // ===== MALES (MUSLIM MALE AVATARS) =====
+ 
   {
     clerkId: "seed_user_2",
     name: "Shuayb Abdellah",
