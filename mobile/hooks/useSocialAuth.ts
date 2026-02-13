@@ -9,12 +9,13 @@ function useAuthSocial() {
   const { isSignedIn, isLoaded } = useAuth();
   const router = useRouter();
 
-  const handleSocialAuth = async (strategy: "oauth_google" | "oauth_apple") => {
-    if (loadingStrategy) return; // prevent concurrent logins
+  const handleSocialAuth = async (
+    strategy: "oauth_google" | "oauth_apple"
+  ) => {
+    if (loadingStrategy) return;
     setLoadingStrategy(strategy);
 
     try {
-      // Start the SSO flow
       const { createdSessionId, setActive } = await startSSOFlow({ strategy });
 
       if (!createdSessionId || !setActive) {
@@ -26,23 +27,25 @@ function useAuthSocial() {
         return;
       }
 
-      // Activate the session manually
+      // ✅ ONLY activate session
       await setActive({ session: createdSessionId });
-
-      // Redirect immediately after successful login
-      router.replace("/(tabs)");
     } catch (error) {
       console.log("💥 Error in social auth:", error);
       const provider = strategy === "oauth_google" ? "Google" : "Apple";
-      Alert.alert("Error", `Failed to sign in with ${provider}. Please try again.`);
+      Alert.alert(
+        "Error",
+        `Failed to sign in with ${provider}. Please try again.`
+      );
     } finally {
       setLoadingStrategy(null);
     }
   };
 
-  // Optional: if user is already signed in, redirect automatically
+  // ✅ Redirect ONLY when auth state is fully ready
   useEffect(() => {
-    if (isLoaded && isSignedIn) {
+    if (!isLoaded) return;
+
+    if (isSignedIn) {
       router.replace("/(tabs)");
     }
   }, [isLoaded, isSignedIn]);
