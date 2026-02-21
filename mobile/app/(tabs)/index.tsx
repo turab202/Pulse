@@ -5,9 +5,11 @@ import { Chat } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { ActivityIndicator, FlatList, Pressable, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const ChatsTab = () => {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { data: chats, isLoading, error, refetch } = useChats();
 
   if (isLoading) {
@@ -41,6 +43,23 @@ const ChatsTab = () => {
     });
   };
 
+  // Custom header component that includes the title and new chat button
+  const ListHeaderComponent = () => (
+    <View style={{ paddingTop: insets.top }} className="bg-surface">
+      <View className="px-5 py-4">
+        <View className="flex-row items-center justify-between">
+          <Text className="text-2xl font-bold text-foreground">Chats</Text>
+          <Pressable
+            className="size-10 bg-primary rounded-full items-center justify-center"
+            onPress={() => router.push("/new-chat")}
+          >
+            <Ionicons name="create-outline" size={20} color="#0D0D0F" />
+          </Pressable>
+        </View>
+      </View>
+    </View>
+  );
+
   return (
     <View className="flex-1 bg-surface">
       <FlatList
@@ -48,9 +67,11 @@ const ChatsTab = () => {
         keyExtractor={(item) => item._id}
         renderItem={({ item }) => <ChatItem chat={item} onPress={() => handleChatPress(item)} />}
         showsVerticalScrollIndicator={false}
-        contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 24 }}
-        ListHeaderComponent={<Header />}
+        ListHeaderComponent={ListHeaderComponent}
+        contentContainerStyle={{ 
+          paddingBottom: 24,
+          // Remove paddingTop from here since it's handled by ListHeaderComponent
+        }}
         ListEmptyComponent={
           <EmptyUI
             title="No chats yet"
@@ -68,21 +89,3 @@ const ChatsTab = () => {
 };
 
 export default ChatsTab;
-
-function Header() {
-  const router = useRouter();
-
-  return (
-    <View className="px-5 pt-2 pb-4">
-      <View className="flex-row items-center justify-between">
-        <Text className="text-2xl font-bold text-foreground">Chats</Text>
-        <Pressable
-          className="size-10 bg-primary rounded-full items-center justify-center"
-          onPress={() => router.push("/new-chat")}
-        >
-          <Ionicons name="create-outline" size={20} color="#0D0D0F" />
-        </Pressable>
-      </View>
-    </View>
-  );
-}

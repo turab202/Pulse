@@ -1,25 +1,27 @@
 import { useEffect } from "react";
-import { View, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "@clerk/clerk-expo";
+import { View, Text, ActivityIndicator } from "react-native";
 
 export default function SSOCallback() {
-  const { isSignedIn, isLoaded } = useAuth();
   const router = useRouter();
+  const { isSignedIn, isLoaded } = useAuth();
 
   useEffect(() => {
-    if (!isLoaded) return;
-
-    if (isSignedIn) {
-      router.replace("/(tabs)");
-    } else {
-      router.replace("/(auth)/sign-in");
+    if (isLoaded && isSignedIn) {
+      // Small delay to ensure navigation is ready
+      setTimeout(() => {
+        router.replace("/(tabs)");
+      }, 100);
     }
   }, [isLoaded, isSignedIn]);
 
   return (
-    <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-      <ActivityIndicator size="large" />
+    <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#0D0D0F" }}>
+      <ActivityIndicator size="large" color="#F4A261" />
+      <Text style={{ color: "#FFFFFF", marginTop: 10, fontSize: 16 }}>
+        Completing sign in...
+      </Text>
     </View>
   );
 }

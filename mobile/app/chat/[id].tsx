@@ -17,8 +17,9 @@ import {
   Platform,
   ActivityIndicator,
   TextInput,
+  Keyboard,
+  KeyboardEvent,
 } from "react-native";
-
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type ChatParams = {
@@ -33,6 +34,7 @@ const ChatDetailScreen = () => {
 
   const [messageText, setMessageText] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
 
   const { data: currentUser } = useCurrentUser();
@@ -45,6 +47,32 @@ const ChatDetailScreen = () => {
   const isTyping = typingUsers.get(chatId) === participantId;
 
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Keyboard listeners
+  useEffect(() => {
+    const keyboardWillShow = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e: KeyboardEvent) => {
+        setKeyboardHeight(e.endCoordinates.height);
+        // Scroll to bottom when keyboard appears
+        setTimeout(() => {
+          scrollViewRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+      }
+    );
+
+    const keyboardWillHide = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setKeyboardHeight(0);
+      }
+    );
+
+    return () => {
+      keyboardWillShow.remove();
+      keyboardWillHide.remove();
+    };
+  }, []);
 
   // join chat room on mount, leave on unmount
   useEffect(() => {
@@ -123,11 +151,28 @@ const ChatDetailScreen = () => {
     <SafeAreaView className="flex-1 bg-surface" edges={["top", "bottom"]}>
       {/* Header */}
       <View className="flex-row items-center px-4 py-2 bg-surface border-b border-surface-light">
-        <Pressable onPress={() => router.back()}>
+        <Pressable onPress={() => router.back()} className="p-1">
           <Ionicons name="arrow-back" size={24} color="#F4A261" />
         </Pressable>
-        <View className="flex-row items-center flex-1 ml-2">
-          {avatar && <Image source={avatar} style={{ width: 40, height: 40, borderRadius: 999 }} />}
+        <Pressable 
+          className="flex-row items-center flex-1 ml-2"
+          onPress={() => {
+            // Navigate to user profile if needed
+          }}
+        >
+          {avatar ? (
+            <Image 
+              source={{ uri: avatar }} 
+              style={{ width: 40, height: 40, borderRadius: 20 }} 
+              contentFit="cover"
+            />
+          ) : (
+            <View className="w-10 h-10 rounded-full bg-surface-card items-center justify-center">
+              <Text className="text-foreground text-lg font-semibold">
+                {name?.charAt(0).toUpperCase()}
+              </Text>
+            </View>
+          )}
           <View className="ml-3">
             <Text className="text-foreground font-semibold text-base" numberOfLines={1}>
               {name}
@@ -136,7 +181,7 @@ const ChatDetailScreen = () => {
               {isTyping ? "typing..." : isOnline ? "Online" : "Offline"}
             </Text>
           </View>
-        </View>
+        </Pressable>
         <View className="flex-row items-center gap-3">
           <Pressable className="w-9 h-9 rounded-full items-center justify-center">
             <Ionicons name="call-outline" size={20} color="#A0A0A5" />
@@ -148,11 +193,13 @@ const ChatDetailScreen = () => {
       </View>
 
       {/* Message + Keyboard input */}
-
       <KeyboardAvoidingView
         className="flex-1"
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={0}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={Platform.select({
+          ios: 90,
+          android: 0,
+        })}
       >
         <View className="flex-1 bg-surface">
           {isLoading ? (
@@ -160,20 +207,28 @@ const ChatDetailScreen = () => {
               <ActivityIndicator size="large" color="#F4A261" />
             </View>
           ) : !messages || messages.length === 0 ? (
-            <EmptyUI
-              title="No messages yet"
-              subtitle="Start the conversation!"
-              iconName="chatbubbles-outline"
-              iconColor="#6B6B70"
-              iconSize={64}
-            />
+            <View className="flex-1 justify-center">
+              <EmptyUI
+                title="No messages yet"
+                subtitle="Start the conversation!"
+                iconName="chatbubbles-outline"
+                iconColor="#6B6B70"
+                iconSize={64}
+              />
+            </View>
           ) : (
             <ScrollView
               ref={scrollViewRef}
-              contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 12, gap: 8 }}
+              contentContainerStyle={{ 
+                paddingHorizontal: 16, 
+                paddingVertical: 12, 
+                gap: 8,
+                flexGrow: 1,
+              }}
               onContentSizeChange={() => {
                 scrollViewRef.current?.scrollToEnd({ animated: false });
               }}
+              showsVerticalScrollIndicator={true}
             >
               {messages.map((message) => {
                 const senderId = (message.sender as MessageSender)._id;
@@ -184,27 +239,36 @@ const ChatDetailScreen = () => {
             </ScrollView>
           )}
 
-          {/* Input bar */}
-          <View className="px-3 pb-3 pt-2 bg-surface border-t border-surface-light">
+          {/* Input bar - always visible */}
+          <View 
+            className="px-3 pb-3 pt-2 bg-surface border-t border-surface-light"
+            style={{ 
+              marginBottom: Platform.OS === 'android' && keyboardHeight > 0 ? keyboardHeight : 0,
+            }}
+          >
             <View className="flex-row items-end bg-surface-card rounded-3xl px-3 py-1.5 gap-2">
               <Pressable className="w-8 h-8 rounded-full items-center justify-center">
-                <Ionicons name="add" size={22} color="#F4A261" />
+                <Ionicons name="add-circle-outline" size={24} color="#F4A261" />
               </Pressable>
 
               <TextInput
                 placeholder="Type a message"
                 placeholderTextColor="#6B6B70"
-                className="flex-1 text-foreground text-sm mb-2"
+                className="flex-1 text-foreground text-base py-2 max-h-24"
                 multiline
-                style={{ maxHeight: 100 }}
                 value={messageText}
                 onChangeText={handleTyping}
                 onSubmitEditing={handleSend}
                 editable={!isSending}
+                returnKeyType="send"
+                enablesReturnKeyAutomatically={true}
+                blurOnSubmit={false}
               />
 
               <Pressable
-                className="w-8 h-8 rounded-full items-center justify-center bg-primary"
+                className={`w-9 h-9 rounded-full items-center justify-center ${
+                  !messageText.trim() || isSending ? 'opacity-50' : 'bg-primary'
+                }`}
                 onPress={handleSend}
                 disabled={!messageText.trim() || isSending}
               >

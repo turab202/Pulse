@@ -41,14 +41,7 @@ function useAuthSocial() {
     }
   };
 
-  // ✅ Redirect ONLY when auth state is fully ready
-  useEffect(() => {
-    if (!isLoaded) return;
-
-    if (isSignedIn) {
-      router.replace("/(tabs)");
-    }
-  }, [isLoaded, isSignedIn]);
+  
 
   return { handleSocialAuth, loadingStrategy };
 }
